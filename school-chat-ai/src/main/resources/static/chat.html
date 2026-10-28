@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="hi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>School Assistant</title>
+    <style>
+        :root {
+          --bg: #ffffff; --side: #f7f7f8; --text: #1f2430; --muted: #6b7280; --line: #e5e7eb;
+          --user-bg: #f0f2f5; --box: #ffffff; --box-line: #d9dce3; --accent: #1f2430; --accent-text: #ffffff;
+          --card: #ffffff; --th: #f3f4f6; --hover: #ececef; --err: #b42318; --avatar: #2f5bea;
+        }
+        @media (prefers-color-scheme: dark) {
+          :root {
+            --bg: #212225; --side: #17181a; --text: #ececf1; --muted: #9ca3af; --line: #34363b;
+            --user-bg: #2f3136; --box: #2b2d31; --box-line: #44474d; --accent: #ececf1; --accent-text: #17181a;
+            --card: #26282c; --th: #2f3136; --hover: #2a2c30; --err: #ff8a80; --avatar: #6b8cff;
+          }
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body { margin: 0; background: var(--bg); color: var(--text);
+               font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+        .app { display: flex; height: 100dvh; }
+
+        /* ---------- sidebar ---------- */
+        aside { width: 260px; background: var(--side); display: flex; flex-direction: column; padding: 10px;
+                border-right: 1px solid var(--line); flex-shrink: 0; }
+        .new { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; border: 0;
+               border-radius: 10px; background: transparent; color: var(--text); font: inherit; font-size: 14.5px;
+               cursor: pointer; text-align: left; }
+        .new:hover, .item:hover { background: var(--hover); }
+        .label { font-size: 12px; color: var(--muted); padding: 14px 12px 6px; }
+        #history { flex: 1; overflow-y: auto; }
+        .item { display: block; width: 100%; padding: 8px 12px; border: 0; border-radius: 10px; background: transparent;
+                color: var(--text); font: inherit; font-size: 14px; text-align: left; cursor: pointer;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item.active { background: var(--hover); }
+        .side-foot { font-size: 12.5px; padding: 10px 12px; color: var(--muted); }
+        .side-foot a { color: var(--muted); }
+
+        /* ---------- main ---------- */
+        main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+        .topbar { display: none; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+        .icon-btn { border: 0; background: transparent; color: var(--text); width: 36px; height: 36px; border-radius: 8px;
+                    cursor: pointer; font-size: 20px; line-height: 1; }
+        .icon-btn:hover { background: var(--hover); }
+        #scroll { flex: 1; overflow-y: auto; }
+        #thread { max-width: 760px; margin: 0 auto; padding: 24px 16px 12px; }
+
+        .welcome { min-height: 55vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .welcome h1 { font-size: 28px; font-weight: 600; margin: 0 0 6px; }
+        .welcome p { color: var(--muted); margin: 0 0 24px; font-size: 15px; }
+        .suggest { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 560px; }
+        .suggest button { text-align: left; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px;
+                          background: transparent; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+        .suggest button:hover { background: var(--hover); }
+
+        .row { display: flex; gap: 12px; margin: 18px 0; }
+        .row.user { justify-content: flex-end; }
+        .row.user .bubble { background: var(--user-bg); padding: 9px 16px; border-radius: 20px; max-width: 80%;
+                            white-space: pre-wrap; word-wrap: break-word; }
+        .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--avatar); color: #fff; font-size: 12px;
+                  font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+        .row.bot .content { min-width: 0; flex: 1; }
+        .row.bot .answer { white-space: pre-wrap; word-wrap: break-word; }
+        .row.bot.error .answer { color: var(--err); }
+
+        .tbl-wrap { overflow-x: auto; margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+        table { border-collapse: collapse; width: 100%; font-size: 14px; }
+        th, td { padding: 8px 14px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+        th { background: var(--th); font-weight: 600; font-size: 13px; }
+        tr:last-child td { border-bottom: 0; }
+
+        .dots { display: inline-flex; gap: 4px; padding: 8px 0; }
+        .dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite ease-in-out; }
+        .dots span:nth-child(2) { animation-delay: .2s; }
+        .dots span:nth-child(3) { animation-delay: .4s; }
+        @keyframes blink { 0%, 80%, 100% { opacity: .25; transform: scale(.8); } 40% { opacity: 1; transform: scale(1); } }
+        @media (prefers-reduced-motion: reduce) { .dots span { animation: none; opacity: .6; } }
+
+        /* ---------- composer ---------- */
+        .composer { max-width: 760px; width: 100%; margin: 0 auto; padding: 8px 16px 10px; }
+        .box { display: flex; align-items: flex-end; gap: 8px; background: var(--box); border: 1px solid var(--box-line);
+               border-radius: 26px; padding: 8px 8px 8px 18px; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+        .box:focus-within { border-color: var(--muted); }
+        textarea { flex: 1; border: 0; outline: 0; resize: none; background: transparent; color: var(--text);
+                   font: inherit; line-height: 1.5; max-height: 160px; padding: 6px 0; }
+        #send { width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-text);
+                cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        #send:disabled { opacity: .3; cursor: default; }
+        .hint { text-align: center; font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+
+        /* ---------- mobile ---------- */
+        .scrim { display: none; }
+        @media (max-width: 760px) {
+          aside { position: fixed; inset: 0 auto 0 0; z-index: 20; transform: translateX(-100%); transition: transform .2s; width: 270px; }
+          body.menu aside { transform: none; }
+          body.menu .scrim { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 10; }
+          .topbar { display: flex; }
+          .suggest { grid-template-columns: 1fr; }
+          .welcome h1 { font-size: 24px; }
+        }
+        @media (prefers-reduced-motion: reduce) { aside { transition: none; } }
+    </style>
+</head>
+<body>
+<div class="app">
+    <aside id="side">
+        <button class="new" id="newChat" type="button">＋ &nbsp;Nayi chat</button>
+        <div class="label">Pehle ki chats</div>
+        <div id="history"></div>
+        <div class="side-foot"><a href="/">Classic view</a></div>
+    </aside>
+    <div class="scrim" id="scrim"></div>
+
+    <main>
+        <div class="topbar">
+            <button class="icon-btn" id="menuBtn" type="button" aria-label="Menu">☰</button>
+            <strong>School Assistant</strong>
+        </div>
+        <div id="scroll"><div id="thread"></div></div>
+        <form class="composer" id="form">
+            <div class="box">
+                <textarea id="prompt" rows="1" maxlength="300" placeholder="Kuch bhi poochho... (jaise: Class 10-A mein kitne students hain?)"></textarea>
+                <button id="send" type="submit" aria-label="Bhejo" disabled>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                </button>
+            </div>
+            <p class="hint">Jawab school ke database se aata hai. Enter se bhejo, Shift+Enter se nayi line.</p>
+        </form>
+    </main>
+</div>
+
+<script>
+    (function () {
+      var SUGGESTIONS = [
+        'Class 10-A mein kitne students hain?',
+        'Class 10 ke section wise students batao',
+        '9-B ke class teacher kaun hain?',
+        'Mathematics ke teachers dikhao'
+      ];
+      var STORE_KEY = 'school-assistant-chats-v1';
+
+      var thread = document.getElementById('thread');
+      var scroller = document.getElementById('scroll');
+      var promptEl = document.getElementById('prompt');
+      var sendBtn = document.getElementById('send');
+      var historyEl = document.getElementById('history');
+
+      var chats = [];        // [{id, title, messages:[{role, text, tool, columns, rows}]}]
+      var current = null;    // chat object
+      var busy = false;
+
+      // ---------- storage (sirf is browser ki convenience; fail ho to bhi app chalta hai) ----------
+      function loadChats() {
+        try { var raw = localStorage.getItem(STORE_KEY); if (raw) chats = JSON.parse(raw) || []; } catch (e) { chats = []; }
+      }
+      function saveChats() {
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(chats.slice(0, 30))); } catch (e) { /* ignore */ }
+      }
+
+      function el(tag, text, cls) {
+        var e = document.createElement(tag);
+        if (text !== undefined && text !== null) e.textContent = text;
+        if (cls) e.className = cls;
+        return e;
+      }
+
+      // ---------- rendering ----------
+      function renderTable(columns, rows) {
+        var wrap = el('div', null, 'tbl-wrap');
+        var table = el('table');
+        var head = el('tr');
+        columns.forEach(function (c) { head.appendChild(el('th', c)); });
+        var thead = el('thead'); thead.appendChild(head); table.appendChild(thead);
+        var tbody = el('tbody');
+        rows.forEach(function (r) {
+          var tr = el('tr');
+          columns.forEach(function (c) { tr.appendChild(el('td', r[c] === undefined || r[c] === null ? '-' : r[c])); });
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        wrap.appendChild(table);
+        return wrap;
+      }
+
+      function botRow(m) {
+        var row = el('div', null, 'row bot' + (m.tool === 'error' ? ' error' : ''));
+        row.appendChild(el('div', 'AI', 'avatar'));
+        var content = el('div', null, 'content');
+        content.appendChild(el('div', m.text, 'answer'));
+        if (m.columns && m.columns.length && m.rows && m.rows.length) {
+          content.appendChild(renderTable(m.columns, m.rows));
+        }
+        row.appendChild(content);
+        return row;
+      }
+
+      function typingRow() {
+        var row = el('div', null, 'row bot');
+        row.appendChild(el('div', 'AI', 'avatar'));
+        var content = el('div', null, 'content');
+        var dots = el('div', null, 'dots');
+        dots.setAttribute('role', 'status');
+        dots.setAttribute('aria-label', 'Jawab aa raha hai');
+        for (var i = 0; i < 3; i++) dots.appendChild(el('span'));
+        content.appendChild(dots);
+        row.appendChild(content);
+        return row;
+      }
+
+      function renderThread() {
+        thread.textContent = '';
+        if (!current || !current.messages.length) {
+          var w = el('div', null, 'welcome');
+          w.appendChild(el('h1', 'Welcome to Hexa AI Agent ?'));
+          w.appendChild(el('p', 'Students, classes ya teachers ke baare mein poochho.'));
+          var grid = el('div', null, 'suggest');
+          SUGGESTIONS.forEach(function (s) {
+            var b = el('button', s); b.type = 'button';
+            b.addEventListener('click', function () { send(s); });
+            grid.appendChild(b);
+          });
+          w.appendChild(grid);
+          thread.appendChild(w);
+        } else {
+          current.messages.forEach(function (m) {
+            if (m.role === 'user') {
+              var row = el('div', null, 'row user');
+              row.appendChild(el('div', m.text, 'bubble'));
+              thread.appendChild(row);
+            } else {
+              thread.appendChild(botRow(m));
+            }
+          });
+        }
+        scroller.scrollTop = scroller.scrollHeight;
+      }
+
+      function renderHistory() {
+        historyEl.textContent = '';
+        chats.forEach(function (c) {
+          var b = el('button', c.title, 'item' + (current && c.id === current.id ? ' active' : ''));
+          b.type = 'button';
+          b.title = c.title;
+          b.addEventListener('click', function () { openChat(c.id); closeMenu(); });
+          historyEl.appendChild(b);
+        });
+      }
+
+      function newChat() {
+        current = null;
+        renderThread(); renderHistory();
+        promptEl.focus();
+      }
+
+      function openChat(id) {
+        current = chats.filter(function (c) { return c.id === id; })[0] || null;
+        renderThread(); renderHistory();
+      }
+
+      // ---------- sending ----------
+      function send(text) {
+        text = (text || '').trim();
+        if (!text || busy) return;
+        busy = true;
+
+        if (!current) {
+          current = { id: String(Date.now()), title: text.length > 40 ? text.slice(0, 40) + '…' : text, messages: [] };
+          chats.unshift(current);
+        }
+        current.messages.push({ role: 'user', text: text });
+        renderThread(); renderHistory();
+
+        promptEl.value = ''; autosize(); updateSend();
+        var typing = typingRow();
+        thread.appendChild(typing);
+        scroller.scrollTop = scroller.scrollHeight;
+
+        fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        }).then(function (r) { return r.json(); })
+          .then(function (d) {
+            return { role: 'bot', text: d.answer || d.message || 'Kuch gadbad hui.', tool: d.tool, columns: d.columns || [], rows: d.rows || [] };
+          })
+          .catch(function () {
+            return { role: 'bot', text: 'Server se connect nahi ho paya. Thodi der baad try karo.', tool: 'error', columns: [], rows: [] };
+          })
+          .then(function (msg) {
+            current.messages.push(msg);
+            saveChats();
+            busy = false;
+            renderThread(); updateSend();
+            promptEl.focus();
+          });
+      }
+
+      // ---------- composer ----------
+      function autosize() {
+        promptEl.style.height = 'auto';
+        promptEl.style.height = Math.min(promptEl.scrollHeight, 160) + 'px';
+      }
+      function updateSend() {
+        sendBtn.disabled = busy || !promptEl.value.trim();
+      }
+      promptEl.addEventListener('input', function () { autosize(); updateSend(); });
+      promptEl.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+          e.preventDefault();
+          send(promptEl.value);
+        }
+      });
+      document.getElementById('form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        send(promptEl.value);
+      });
+
+      // ---------- menu (mobile) ----------
+      function closeMenu() { document.body.classList.remove('menu'); }
+      document.getElementById('menuBtn').addEventListener('click', function () { document.body.classList.toggle('menu'); });
+      document.getElementById('scrim').addEventListener('click', closeMenu);
+      document.getElementById('newChat').addEventListener('click', function () { newChat(); closeMenu(); });
+
+      // ---------- start ----------
+      loadChats();
+      renderThread();
+      renderHistory();
+      updateSend();
+      promptEl.focus();
+    })();
+</script>
+</body>
+</html>

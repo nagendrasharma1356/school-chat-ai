@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>School Chat AI</title>
+<style>
+  :root {
+    --bg: #f4f6fb; --card: #ffffff; --text: #1d2433; --muted: #667085; --line: #e3e7ef;
+    --brand: #2f5bea; --brand-soft: #e8eefe; --user: #2f5bea; --user-text: #ffffff;
+    --bot: #eef1f7; --err: #b42318; --err-bg: #fdecea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1420; --card: #171d2c; --text: #e8ecf5; --muted: #9aa4b8; --line: #263049;
+      --brand: #6b8cff; --brand-soft: #1f2a4a; --user: #4a6bff; --user-text: #ffffff;
+      --bot: #1f2638; --err: #ff8a80; --err-bg: #3a1f1f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 18px 16px 0; max-width: 960px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 20px; }
+  header p { margin: 2px 0 12px; color: var(--muted); font-size: 13px; }
+  main { max-width: 960px; margin: 0 auto; padding: 0 16px 24px; }
+  nav { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  nav button { border: 1px solid var(--line); background: var(--card); color: var(--text);
+               padding: 7px 14px; border-radius: 999px; cursor: pointer; font: inherit; }
+  nav button.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .panel { display: none; background: var(--card); border: 1px solid var(--line);
+           border-radius: 14px; padding: 14px; }
+  .panel.active { display: block; }
+
+  #msgs { height: 52vh; min-height: 280px; overflow-y: auto; display: flex; flex-direction: column;
+          gap: 10px; padding: 4px 2px 10px; }
+  .msg { max-width: 92%; padding: 9px 12px; border-radius: 12px; word-wrap: break-word; }
+  .msg.user { align-self: flex-end; background: var(--user); color: var(--user-text); border-bottom-right-radius: 4px; }
+  .msg.bot { align-self: flex-start; background: var(--bot); border-bottom-left-radius: 4px; }
+  .msg.err { background: var(--err-bg); color: var(--err); }
+  .msg .tag { display: inline-block; margin-top: 6px; font-size: 11px; color: var(--muted); }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
+  .chips button { border: 1px solid var(--line); background: var(--brand-soft); color: var(--text);
+                  padding: 4px 10px; border-radius: 999px; cursor: pointer; font-size: 12.5px; }
+  form.send { display: flex; gap: 8px; }
+  form.send input { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+                    background: var(--bg); color: var(--text); font: inherit; }
+  form.send button { padding: 10px 18px; border: 0; border-radius: 10px; background: var(--brand);
+                     color: #fff; font: inherit; cursor: pointer; }
+  form.send button:disabled { opacity: .6; cursor: default; }
+
+  .tbl-wrap { overflow-x: auto; margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { background: var(--brand-soft); font-weight: 600; position: sticky; top: 0; }
+  tr:last-child td { border-bottom: 0; }
+  .toolbar { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .toolbar input { flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+                   background: var(--bg); color: var(--text); font: inherit; }
+  .count { color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>School Chat AI</h1>
+  <p>Students, classes aur teachers ke baare mein poochho. Jawab DB se aata hai, AI sirf sawal samajhta hai.</p>
+</header>
+<main>
+  <nav id="tabs">
+    <button data-tab="chat" class="active">Chat</button>
+    <button data-tab="students">Students</button>
+    <button data-tab="classes">Classes</button>
+    <button data-tab="teachers">Teachers</button>
+  </nav>
+
+  <section id="chat" class="panel active">
+    <div id="msgs" aria-live="polite"></div>
+    <div class="chips" id="chips"></div>
+    <form class="send" id="form">
+      <input id="input" type="text" maxlength="300" autocomplete="off"
+             placeholder="Jaise: Class 10-A mein kitne students hain?">
+      <button id="sendBtn" type="submit">Bhejo</button>
+    </form>
+  </section>
+
+  <section id="students" class="panel">
+    <div class="toolbar"><input id="studentSearch" placeholder="Naam ya class se filter karo"><span class="count" id="studentCount"></span></div>
+    <div id="studentTable"></div>
+  </section>
+  <section id="classes" class="panel"><div id="classTable"></div></section>
+  <section id="teachers" class="panel"><div id="teacherTable"></div></section>
+</main>
+
+<script>
+(function () {
+  var EXAMPLES = [
+    'Class 10-A mein kitne students hain?',
+    'Class 10 ke section wise students batao',
+    '9-B ke class teacher kaun hain?',
+    'Mathematics ke teachers dikhao',
+    'Saari classes dikhao',
+    'Class 11 ke students ki list'
+  ];
+
+  function el(tag, text, cls) {
+    var e = document.createElement(tag);
+    if (text !== undefined && text !== null) e.textContent = text;
+    if (cls) e.className = cls;
+    return e;
+  }
+
+  function renderTable(columns, rows) {
+    var wrap = el('div', null, 'tbl-wrap');
+    var table = el('table');
+    var head = el('tr');
+    columns.forEach(function (c) { head.appendChild(el('th', c)); });
+    var thead = el('thead'); thead.appendChild(head); table.appendChild(thead);
+    var tbody = el('tbody');
+    rows.forEach(function (r) {
+      var tr = el('tr');
+      columns.forEach(function (c) { tr.appendChild(el('td', r[c] === undefined || r[c] === null ? '-' : r[c])); });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    return wrap;
+  }
+
+  // ---------------- tabs ----------------
+  var loaded = {};
+  document.getElementById('tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var tab = b.getAttribute('data-tab');
+    document.querySelectorAll('#tabs button').forEach(function (x) { x.classList.toggle('active', x === b); });
+    document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('active', p.id === tab); });
+    if (tab !== 'chat') loadTab(tab);
+  });
+
+  function getJson(url) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('Server error ' + r.status);
+      return r.json();
+    });
+  }
+
+  var studentRows = [];
+  function loadTab(tab) {
+    if (tab === 'students') {
+      getJson('/api/students').then(function (list) {
+        studentRows = list.map(function (s) {
+          var c = s.schoolClass || {};
+          return { 'Roll No': s.rollNo, 'Name': s.name, 'Class': c.name, 'Section': c.section,
+                   'Guardian': s.guardianName, 'Phone': s.phone, 'Status': s.status };
+        });
+        drawStudents();
+      }).catch(function (e) { document.getElementById('studentTable').textContent = e.message; });
+    } else if (tab === 'classes') {
+      getJson('/api/classes').then(function (list) {
+        var rows = list.map(function (c) {
+          return { 'Class': c.name, 'Section': c.section, 'Class Teacher': c.classTeacher ? c.classTeacher.name : '-' };
+        });
+        fill('classTable', ['Class', 'Section', 'Class Teacher'], rows);
+      }).catch(function (e) { document.getElementById('classTable').textContent = e.message; });
+    } else if (tab === 'teachers') {
+      getJson('/api/teachers').then(function (list) {
+        var rows = list.map(function (t) {
+          return { 'Name': t.name, 'Subject': t.subject, 'Email': t.email, 'Phone': t.phone };
+        });
+        fill('teacherTable', ['Name', 'Subject', 'Email', 'Phone'], rows);
+      }).catch(function (e) { document.getElementById('teacherTable').textContent = e.message; });
+    }
+  }
+
+  function fill(id, cols, rows) {
+    var box = document.getElementById(id);
+    box.textContent = '';
+    box.appendChild(rows.length ? renderTable(cols, rows) : el('p', 'Abhi koi data nahi hai.', 'count'));
+  }
+
+  var STUDENT_COLS = ['Roll No', 'Name', 'Class', 'Section', 'Guardian', 'Phone', 'Status'];
+  function drawStudents() {
+    var q = document.getElementById('studentSearch').value.trim().toLowerCase();
+    var rows = studentRows.filter(function (r) {
+      if (!q) return true;
+      return STUDENT_COLS.some(function (c) { return String(r[c] == null ? '' : r[c]).toLowerCase().indexOf(q) !== -1; });
+    });
+    document.getElementById('studentCount').textContent = rows.length + ' students';
+    fill('studentTable', STUDENT_COLS, rows);
+  }
+  document.getElementById('studentSearch').addEventListener('input', drawStudents);
+
+  // ---------------- chat ----------------
+  var msgs = document.getElementById('msgs');
+  var input = document.getElementById('input');
+  var sendBtn = document.getElementById('sendBtn');
+
+  function add(who, text, extraClass) {
+    var m = el('div', text, 'msg ' + who + (extraClass ? ' ' + extraClass : ''));
+    msgs.appendChild(m);
+    msgs.scrollTop = msgs.scrollHeight;
+    return m;
+  }
+
+  function showBot(node, d) {
+    node.textContent = d.answer || d.message || 'Kuch gadbad hui.';
+    if (d.tool === 'error') node.classList.add('err');
+    if (d.columns && d.columns.length && d.rows && d.rows.length) {
+      node.appendChild(renderTable(d.columns, d.rows));
+    }
+    if (d.tool && d.tool !== 'none' && d.tool !== 'error') {
+      node.appendChild(el('div', 'tool: ' + d.tool, 'tag'));
+    }
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function send(text) {
+    text = text.trim(); if (!text) return;
+    add('user', text);
+    input.value = '';
+    sendBtn.disabled = true;
+    var pending = add('bot', 'Soch raha hu...');
+    fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    }).then(function (r) { return r.json(); })
+      .then(function (d) { showBot(pending, d); })
+      .catch(function () { showBot(pending, { answer: 'Server se connect nahi ho paya.', tool: 'error' }); })
+      .then(function () { sendBtn.disabled = false; input.focus(); });
+  }
+
+  document.getElementById('form').addEventListener('submit', function (e) { e.preventDefault(); send(input.value); });
+
+  var chips = document.getElementById('chips');
+  EXAMPLES.forEach(function (t) {
+    var b = el('button', t); b.type = 'button';
+    b.addEventListener('click', function () { send(t); });
+    chips.appendChild(b);
+  });
+
+  add('bot', 'Namaste! Class, students ya teachers ke baare mein poochho. Neeche ke example par click karke bhi try kar sakte ho.');
+})();
+</script>
+</body>
+</html>
