@@ -9,7 +9,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface StudentRepository extends JpaRepository<Student, Long>, JpaSpecificationExecutor<Student> {
 
-    /** Rows: [section, count] (sirf ACTIVE students) */
     @Query("""
             select c.section, count(s)
             from Student s join s.schoolClass c
@@ -20,7 +19,6 @@ public interface StudentRepository extends JpaRepository<Student, Long>, JpaSpec
             """)
     List<Object[]> countSectionWise(@Param("className") String className);
 
-    /** Rows: [classId, count] (sirf ACTIVE students) */
     @Query("""
             select c.id, count(s)
             from Student s join s.schoolClass c

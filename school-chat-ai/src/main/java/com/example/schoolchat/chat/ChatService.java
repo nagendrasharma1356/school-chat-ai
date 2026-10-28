@@ -7,13 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-/**
- * Flow:
- *  1. User ka sawal Gemini ko jata hai (DB ka koi data nahi jata)
- *  2. Gemini JSON deta hai: kaunsa tool + parameters
- *  3. Hum tool allowlist aur parameters validate karte hain, phir apna tool (DB query) chalate hain
- *  4. UI ko answer + table milta hai
- */
 @Service
 public class ChatService {
 
@@ -101,8 +94,6 @@ public class ChatService {
             return ChatResponse.error("Data nikalte waqt dikkat aayi. Dobara try karo.");
         }
     }
-
-    // ---------- Gemini ke output ko saaf/validate karna ----------
 
     private static String text(JsonNode n, String field) {
         JsonNode v = n.path(field);

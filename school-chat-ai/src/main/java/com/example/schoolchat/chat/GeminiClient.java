@@ -13,7 +13,6 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
-/** Google AI Studio (Gemini API) ko call karta hai. Key sirf backend mein rehti hai. */
 @Component
 public class GeminiClient {
 
@@ -34,7 +33,6 @@ public class GeminiClient {
                 .build();
     }
 
-    /** Gemini ko sirf JSON return karne par majboor karta hai (responseMimeType). */
     public String generateJson(String systemPrompt, String userText) {
         if (props.apiKey() == null || props.apiKey().isBlank()) {
             throw new GeminiException("GEMINI_API_KEY set nahi hai. AI Studio se key lekar environment variable mein daalo.");

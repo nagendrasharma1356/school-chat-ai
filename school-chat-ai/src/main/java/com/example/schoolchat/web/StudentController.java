@@ -27,7 +27,6 @@ public class StudentController {
         this.query = query;
     }
 
-    /** GET /api/students?className=10&section=A&name=aar  (sab optional, INACTIVE bhi dikhte hain) */
     @GetMapping
     public List<Student> all(@RequestParam(required = false) String className,
                              @RequestParam(required = false) String section,

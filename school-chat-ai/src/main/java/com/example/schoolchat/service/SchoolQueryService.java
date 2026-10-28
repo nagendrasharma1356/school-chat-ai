@@ -19,7 +19,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Chat tools aur REST list endpoints dono yahin se data padhte hain. */
 @Service
 @Transactional(readOnly = true)
 public class SchoolQueryService {
@@ -34,12 +33,10 @@ public class SchoolQueryService {
         this.classes = classes;
     }
 
-    /** Sirf ACTIVE students ginta hai. className/section null ho to us filter ko ignore karta hai. */
     public long countStudents(String className, String section) {
         return students.count(Specs.students(className, section, null, true));
     }
 
-    /** [{section, count}] sirf ACTIVE students. */
     public List<Map<String, Object>> sectionWise(String className) {
         return students.countSectionWise(className).stream().map(r -> {
             Map<String, Object> m = new LinkedHashMap<>();
@@ -58,7 +55,6 @@ public class SchoolQueryService {
         return teachers.findAll(Specs.teachers(subject, name), Sort.by("name"));
     }
 
-    /** 9, 10, 11 ... aur phir LKG jaise naam: pehle chhota naam (lambai se), phir alphabet se. */
     public static final Comparator<SchoolClass> CLASS_ORDER = Comparator
             .comparingInt((SchoolClass c) -> c.getName().length())
             .thenComparing(SchoolClass::getName, String.CASE_INSENSITIVE_ORDER)
@@ -68,7 +64,6 @@ public class SchoolQueryService {
         return classes.findAll().stream().sorted(CLASS_ORDER).toList();
     }
 
-    /** classId -> ACTIVE students ki ginti */
     public Map<Long, Long> activeCountPerClass() {
         Map<Long, Long> out = new HashMap<>();
         for (Object[] r : students.countPerClass()) {

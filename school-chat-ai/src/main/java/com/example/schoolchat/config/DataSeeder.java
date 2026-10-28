@@ -15,7 +15,6 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-/** Poori tarah khaali DB mein demo data daalta hai, taaki chat turant try ho sake. */
 @Component
 @ConditionalOnProperty(name = "app.seed-data", havingValue = "true")
 public class DataSeeder implements ApplicationRunner {

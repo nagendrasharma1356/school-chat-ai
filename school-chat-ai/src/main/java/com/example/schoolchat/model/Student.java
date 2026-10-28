@@ -25,7 +25,6 @@ public class Student {
 
     private String phone;
 
-    /** ACTIVE ya INACTIVE */
     @Column(nullable = false)
     private String status = "ACTIVE";
 

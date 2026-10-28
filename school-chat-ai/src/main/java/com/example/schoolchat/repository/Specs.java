@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.jpa.domain.Specification;
 
-/** Optional filters wali queries. Sab kuch parameterized hai, to SQL injection ka khatra nahi. */
 public final class Specs {
 
     private Specs() {}

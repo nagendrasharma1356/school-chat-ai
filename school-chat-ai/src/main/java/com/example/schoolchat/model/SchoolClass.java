@@ -3,7 +3,6 @@ package com.example.schoolchat.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 
-/** Ek class + section, jaise 10-A. Table ka naam school_class hai kyunki "class" reserved word hai. */
 @Entity
 @Table(name = "school_class",
         uniqueConstraints = @UniqueConstraint(columnNames = {"name", "section"}))
@@ -13,7 +12,6 @@ public class SchoolClass {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Class ka naam/number, jaise "10" ya "LKG" */
     @NotBlank
     @Column(nullable = false)
     private String name;

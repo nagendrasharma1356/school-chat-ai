@@ -11,10 +11,6 @@ import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
-/**
- * Gemini sirf tool ka naam aur parameters chunta hai. Asli data aur ginti yahin se (DB se) aati hai,
- * isliye AI numbers nahi bana sakta.
- */
 @Component
 public class ChatTools {
 
@@ -28,7 +24,6 @@ public class ChatTools {
         this.svc = svc;
     }
 
-    // ---------- count_students ----------
     public ToolResult countStudents(String cls, String sec) {
         if (cls == null && sec == null) {
             long total = svc.countStudents(null, null);
@@ -53,7 +48,6 @@ public class ChatTools {
                 List.of(row("Class", cls == null ? "-" : cls, "Section", sec == null ? "-" : sec, "Students", total)));
     }
 
-    // ---------- list_students ----------
     public ToolResult listStudents(String cls, String sec, String name) {
         Page<Student> page = svc.listStudents(cls, sec, name, true, MAX_ROWS);
         long total = page.getTotalElements();
@@ -74,7 +68,6 @@ public class ChatTools {
         return new ToolResult(where + total + " active students mile" + more + ".", cols, rows);
     }
 
-    // ---------- list_teachers ----------
     public ToolResult listTeachers(String subject, String name) {
         List<Teacher> list = svc.listTeachers(subject, name);
         String where = filterText(null, null, name, subject);
@@ -91,13 +84,11 @@ public class ChatTools {
                 List.of("Name", "Subject", "Email", "Phone"), rows);
     }
 
-    // ---------- list_classes ----------
     public ToolResult listClasses() {
         List<Map<String, Object>> rows = classRows();
         return new ToolResult("Total " + rows.size() + " classes/sections hain.", CLASS_COLS, rows);
     }
 
-    // ---------- class_teacher ----------
     public ToolResult classTeacher(String cls, String sec) {
         if (cls == null) {
             return listClasses();
@@ -129,7 +120,6 @@ public class ChatTools {
         return new ToolResult(classLabel(cls, null) + " ke sections ke class teachers neeche hain.", cols, rows);
     }
 
-    // ---------- helpers ----------
     private List<Map<String, Object>> classRows() {
         Map<Long, Long> counts = svc.activeCountPerClass();
         List<Map<String, Object>> rows = new ArrayList<>();
@@ -148,7 +138,6 @@ public class ChatTools {
         return "Class " + cls + "-" + sec;
     }
 
-    /** "Class 10-A mein 'aar' naam ke Mathematics ke " jaisa chhota sa prefix */
     private static String filterText(String cls, String sec, String name, String subject) {
         StringBuilder sb = new StringBuilder();
         if (cls != null || sec != null) sb.append(classLabel(cls, sec)).append(" mein ");

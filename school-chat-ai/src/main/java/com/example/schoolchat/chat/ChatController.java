@@ -21,7 +21,6 @@ public class ChatController {
     public record ChatRequest(String message) {
     }
 
-    // POST /api/chat   body: {"message": "Class 10-A mein kitne students hain?"}
     @PostMapping
     public ResponseEntity<ChatResponse> chat(@RequestBody ChatRequest req) {
         String msg = req == null || req.message() == null ? "" : req.message().trim();
